@@ -1,0 +1,23 @@
+# Neuro N6: lets the local desktop user open the board without root.
+#
+# Install:
+#   sudo cp 60-neuro-n6.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+# then replug the board.
+#
+# The number must stay below 73: systemd's 73-seat-late.rules grants access
+# only to devices already tagged "uaccess" by then.
+
+# Application firmware: 1209:8008 and cafe:4013.
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="1209", ATTR{idProduct}=="8008", TAG+="uaccess"
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="cafe", ATTR{idProduct}=="4013", TAG+="uaccess"
+
+# Bootloader: 1209:8009 and cafe:4014.
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="1209", ATTR{idProduct}=="8009", TAG+="uaccess"
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="cafe", ATTR{idProduct}=="4014", TAG+="uaccess"
+
+# The CDC serial ports of the same devices, used for flashing. ModemManager ignores them.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="8008", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1209", ATTRS{idProduct}=="8009", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="cafe", ATTRS{idProduct}=="4013", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="cafe", ATTRS{idProduct}=="4014", TAG+="uaccess", ENV{ID_MM_DEVICE_IGNORE}="1"

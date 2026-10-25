@@ -1,0 +1,54 @@
+name: Bug report
+description: Something in Neuro Studio does not work as documented
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Neuro Studio version
+      description: Shown at the right of the status bar.
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux
+    validations:
+      required: true
+  - type: dropdown
+    id: connection
+    attributes:
+      label: Connection
+      options:
+        - USB
+        - WiFi SoftAP
+        - WiFi STA
+        - Ethernet
+    validations:
+      required: true
+  - type: input
+    id: board
+    attributes:
+      label: Board sketch and firmware
+      description: The sketch running on the board, and the core or BSP version it was built with.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what was expected?
+      description: Steps to reproduce, if known.
+    validations:
+      required: true
+  - type: textarea
+    id: terminal
+    attributes:
+      label: Terminal output
+      description: |
+        The Terminal panel's lines from around the problem; Save writes them
+        to a file. They can contain network addresses.
+      render: text

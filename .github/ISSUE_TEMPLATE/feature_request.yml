@@ -1,0 +1,21 @@
+name: Feature request
+description: Something Neuro Studio should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is the task?
+      description: The task or workflow, rather than a specific control.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What should Neuro Studio do?
+    validations:
+      required: true
+  - type: input
+    id: workaround
+    attributes:
+      label: How is it done today?

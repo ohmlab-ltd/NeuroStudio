@@ -1,0 +1,138 @@
+name: release
+# A vX.Y.Z tag builds Neuro Studio on Windows, macOS and Linux, tests it, installs and runs each
+# installer (scripts/smoke.mjs), and attaches the installers to the tag's release. Run it by hand
+# from the Actions tab to build and test the installers without releasing; they are kept as the
+# run's artifacts. Signing turns on when its secrets are set (docs/RELEASING.md).
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    name: Version, changelog and repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Check the tag against package.json and CHANGELOG.md
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: node scripts/check-release.mjs "$GITHUB_REF_NAME" "$GITHUB_REPOSITORY"
+
+  build:
+    name: ${{ matrix.name }}
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows
+            os: windows-latest
+            target: --win
+            files: |
+              release/Neuro-Studio-Setup.exe
+              release/Neuro-Studio-Portable.exe
+          - name: macOS
+            os: macos-15
+            target: --mac
+            files: release/Neuro-Studio.dmg
+          - name: Linux
+            os: ubuntu-24.04
+            target: --linux
+            files: |
+              release/neuro-studio_amd64.deb
+              release/Neuro-Studio-x86_64.AppImage
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+      - name: Signing certificates
+        # Exported only when the secret exists, so without one the build is unsigned on Windows
+        # and ad-hoc signed on macOS.
+        shell: bash
+        env:
+          MAC_CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          MAC_CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+        run: |
+          if [ "$RUNNER_OS" = macOS ] && [ -n "$MAC_CSC_LINK" ]; then
+            echo "CSC_LINK=$MAC_CSC_LINK" >> "$GITHUB_ENV"
+            echo "CSC_KEY_PASSWORD=$MAC_CSC_KEY_PASSWORD" >> "$GITHUB_ENV"
+          fi
+          if [ "$RUNNER_OS" = Windows ] && [ -n "$WIN_CSC_LINK" ]; then
+            echo "WIN_CSC_LINK=$WIN_CSC_LINK" >> "$GITHUB_ENV"
+            echo "WIN_CSC_KEY_PASSWORD=$WIN_CSC_KEY_PASSWORD" >> "$GITHUB_ENV"
+          fi
+
+      - name: Package
+        env:
+          # macOS notarization, used when a Developer ID signs the app.
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Azure Artifact Signing for Windows: the account's details, and an Entra ID app for it.
+          AZURE_SIGN_ENDPOINT: ${{ vars.AZURE_SIGN_ENDPOINT }}
+          AZURE_SIGN_ACCOUNT: ${{ vars.AZURE_SIGN_ACCOUNT }}
+          AZURE_SIGN_PROFILE: ${{ vars.AZURE_SIGN_PROFILE }}
+          AZURE_SIGN_PUBLISHER: ${{ vars.AZURE_SIGN_PUBLISHER }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        run: npx electron-builder ${{ matrix.target }} --publish never
+
+      - name: Install and run the installer
+        if: runner.os != 'Linux'
+        timeout-minutes: 15
+        run: node scripts/smoke.mjs --install
+
+      - name: Run the Intel build under Rosetta
+        if: runner.os == 'macOS'
+        timeout-minutes: 15
+        run: |
+          softwareupdate --install-rosetta --agree-to-license
+          node scripts/smoke.mjs --install --x64
+
+      - name: Install and run the .deb, then run the AppImage
+        if: runner.os == 'Linux'
+        timeout-minutes: 15
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb fuse3
+          xvfb-run -a node scripts/smoke.mjs --install
+          # As on a stock Ubuntu desktop: FUSE 3, and no libfuse2 for the AppImage to lean on.
+          sudo apt-get remove -y libfuse2t64 || true
+          xvfb-run -a node scripts/smoke.mjs --appimage
+
+      - name: Keep the installers
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: neuro-studio-${{ matrix.name }}
+          path: ${{ matrix.files }}
+
+      - name: Release notes from CHANGELOG.md
+        if: startsWith(github.ref, 'refs/tags/v')
+        # The tag's "## X.Y.Z" section, with CR stripped.
+        shell: bash
+        run: |
+          awk -v v="${GITHUB_REF_NAME#v}" '{ sub(/\r$/, "") }
+            $0 == "## " v { on = 1; next } on && /^## / { exit } on { print }' CHANGELOG.md > notes.md
+
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.files }}
+          body_path: notes.md
+          generate_release_notes: true
