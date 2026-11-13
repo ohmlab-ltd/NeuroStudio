@@ -46,9 +46,8 @@ Neuro N6 AI development board.
 
 ### Notes
 
-- The Windows installers are not code-signed and the macOS app is ad-hoc
-  signed, so SmartScreen and Gatekeeper warn on first launch. The README's
-  First launch section shows how to open it. Windows code signing is being
-  set up for a later release.
+- The Windows installers and app are signed by Ohm Lab Ltd. The macOS app is
+  ad-hoc signed, so Gatekeeper warns on first launch; the README's First
+  launch section shows how to open it.
 - On Windows, boards whose firmware still uses the legacy USB identity
   (`CAFE:4013`) need the WinUSB driver, installed once with Zadig.

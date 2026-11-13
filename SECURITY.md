@@ -39,6 +39,6 @@ policy and support period are published at https://neuron6.com/security.
 - The renderer runs sandboxed, with context isolation and a
   Content-Security-Policy. It reaches the board only through the preload
   bridge.
-- Until signing is set up (docs/RELEASING.md), the Windows installers are not
-  code-signed and the macOS app is ad-hoc signed and not notarized, so
-  SmartScreen and Gatekeeper warn on first launch.
+- The Windows installers and app are signed by Ohm Lab Ltd. Until macOS
+  signing is set up (docs/RELEASING.md), the macOS app is ad-hoc signed and
+  not notarized, so Gatekeeper warns on first launch.

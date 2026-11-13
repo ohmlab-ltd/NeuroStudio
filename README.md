@@ -23,8 +23,8 @@ always fetches the latest release.
 
 ### First launch
 
-The installers are not signed with paid certificates yet, so Windows and macOS
-ask you to confirm Neuro Studio once. After that it opens like any other app.
+The macOS app is not signed with a Developer ID certificate yet, so macOS asks
+you to confirm Neuro Studio once. After that it opens like any other app.
 
 **macOS 12 or later**
 
@@ -54,9 +54,9 @@ xattr -dr com.apple.quarantine "/Applications/Neuro Studio.app"
 
 **Windows**
 
-Code signing for Windows is being set up and will come in a later release.
-Until then the installers are unsigned, so Windows may say "Windows protected
-your PC": click **More info**, then **Run anyway**.
+The installers and the app are signed by Ohm Lab Ltd. While the certificate is
+new, SmartScreen can still say "Windows protected your PC": click **More
+info**, then **Run anyway**.
 
 Neuro Studio checks GitHub for a newer release once per launch and offers to
 open its page. It updates nothing itself.
