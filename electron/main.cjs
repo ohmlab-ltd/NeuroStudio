@@ -680,7 +680,10 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(() => {
     // Must match build.appId for the taskbar to group windows under the installed shortcut.
-    if (process.platform === "win32") app.setAppUserModelId("com.ohmlab.neurostudio");
+    // Dev runs get their own ID, or a pinned electron.exe would claim the installed app's
+    // windows and show Electron's icon for them.
+    const taskbarId = app.isPackaged ? "com.ohmlab.neurostudio" : "com.ohmlab.neurostudio.dev";
+    if (process.platform === "win32") app.setAppUserModelId(taskbarId);
 
     // Packaged builds take their icon from the bundle.
     if (process.platform === "darwin" && !app.isPackaged && app.dock) {
